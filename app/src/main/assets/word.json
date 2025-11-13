@@ -1,0 +1,55 @@
+{
+  "category": "단어",
+  "words": [
+    {
+      "word": "유노이아",
+      "meaning": "아름다운 마음, 선한 의도 (Eunoia)",
+      "source": "asset"
+    },
+    {
+      "word": "에피파니",
+      "meaning": "갑작스러운 깨달음, 통찰",
+      "source": "asset"
+    },
+    {
+      "word": "카타르시스",
+      "meaning": "감정의 정화, 해소",
+      "source": "asset"
+    },
+    {
+      "word": "아포리즘",
+      "meaning": "짧고 교훈적인 격언",
+      "source": "asset"
+    },
+    {
+      "word": "파라독스",
+      "meaning": "모순처럼 보이지만 사실은 타당한 말",
+      "source": "asset"
+    },
+    {
+      "word": "메타포",
+      "meaning": "은유, 비유적 표현",
+      "source": "asset"
+    },
+    {
+      "word": "아나크로니즘",
+      "meaning": "시대착오, 시대에 맞지 않음",
+      "source": "asset"
+    },
+    {
+      "word": "옴니버스",
+      "meaning": "여러 작품을 모은 것",
+      "source": "asset"
+    },
+    {
+      "word": "프롤레고메나",
+      "meaning": "서론, 머리말",
+      "source": "asset"
+    },
+    {
+      "word": "헤게모니",
+      "meaning": "지배권, 주도권",
+      "source": "asset"
+    }
+  ]
+}
