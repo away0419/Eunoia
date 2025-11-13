@@ -17,6 +17,16 @@ import java.util.*
 object FileManager {
     private val gson = Gson()
     private val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+    private val categoryKeyMap = mapOf(
+        "사자성어" to "idiom",
+        "영어" to "english",
+        "속담" to "proverb",
+        "단어" to "word",
+        "idiom" to "idiom",
+        "english" to "english",
+        "proverb" to "proverb",
+        "word" to "word"
+    )
 
     /**
      * Assets 폴더 또는 내부 저장소에서 카테고리별 단어 목록을 로드
@@ -167,6 +177,23 @@ object FileManager {
     }
     
     /**
+     * 히스토리에서 단어를 삭제
+     * @param context 컨텍스트
+     * @param word 삭제할 단어
+     */
+    fun removeFromHistory(context: Context, word: WordData) {
+        val prefs = context.getSharedPreferences("word_history", Context.MODE_PRIVATE)
+        val history = getHistoryWords(context).toMutableList()
+        history.removeAll { historyWord ->
+            historyWord.word == word.word &&
+                    historyWord.category == word.category &&
+                    (word.date == null || historyWord.date == word.date)
+        }
+        val historyJson = gson.toJson(history)
+        prefs.edit().putString("history", historyJson).apply()
+    }
+    
+    /**
      * 사용자가 직접 추가한 단어를 카테고리 파일에 저장
      * @param context 컨텍스트
      * @param word 저장할 단어 (source="user"로 설정되어야 함)
@@ -209,6 +236,64 @@ object FileManager {
         } catch (e: Exception) {
             e.printStackTrace()
             false
+        }
+    }
+
+    /**
+     * 카테고리 파일과 히스토리에서 단어를 삭제
+     * @param context 컨텍스트
+     * @param word 삭제할 단어
+     */
+    suspend fun deleteWord(context: Context, word: WordData): Boolean = withContext(Dispatchers.IO) {
+        try {
+            val categoryKey = resolveCategoryKey(word.category)
+            val existingCategory = loadCategory(context, categoryKey)
+            val existingWords = existingCategory?.words?.toMutableList() ?: return@withContext false
+
+            // 같은 단어(단어 + 뜻 기준)를 제거
+            val removed = existingWords.removeAll { target ->
+                target.word == word.word && target.meaning == word.meaning
+            }
+
+            if (!removed) {
+                return@withContext false
+            }
+
+            // 업데이트된 카테고리 데이터를 내부 저장소에 저장
+            val updatedCategory = Category(
+                category = existingCategory.category,
+                words = existingWords
+            )
+
+            val json = gson.toJson(updatedCategory)
+            val file = java.io.File(context.filesDir, "$categoryKey.json")
+            java.io.FileWriter(file).use { writer ->
+                writer.write(json)
+            }
+
+            // 히스토리에서도 동일한 단어 제거
+            removeFromHistory(context, word)
+
+            true
+        } catch (e: Exception) {
+            e.printStackTrace()
+            false
+        }
+    }
+
+    /**
+     * 화면에 표시되는 카테고리 이름을 파일 키로 변환
+     * @param categoryName 카테고리 표시 이름 또는 키
+     */
+    private fun resolveCategoryKey(categoryName: String): String {
+        val trimmed = categoryName.trim()
+        categoryKeyMap[trimmed]?.let { return it }
+        return when (trimmed.lowercase(Locale.getDefault())) {
+            "사자성어".lowercase(Locale.getDefault()) -> "idiom"
+            "영어".lowercase(Locale.getDefault()) -> "english"
+            "속담".lowercase(Locale.getDefault()) -> "proverb"
+            "단어".lowercase(Locale.getDefault()) -> "word"
+            else -> trimmed
         }
     }
 }

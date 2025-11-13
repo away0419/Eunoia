@@ -17,6 +17,7 @@ import com.ljk.eunoia.data.WordData
 import com.ljk.eunoia.ui.components.WordCard
 import com.ljk.eunoia.ui.theme.*
 import com.ljk.eunoia.utils.FileManager
+import kotlinx.coroutines.launch
 
 /**
  * 지난 단어 탭 (토스 스타일)
@@ -26,6 +27,7 @@ fun HistoryTab() {
     val context = LocalContext.current
     var words by remember { mutableStateOf<List<WordData>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
+    val scope = rememberCoroutineScope()
     
     LaunchedEffect(Unit) {
         try {
@@ -98,10 +100,26 @@ fun HistoryTab() {
                 LazyColumn(
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    items(words) { word ->
+                    items(
+                        items = words,
+                        key = { "${it.category}-${it.word}-${it.source}-${it.date}" }
+                    ) { word ->
                         WordCard(
                             word = word,
-                            showDate = true
+                            showDate = true,
+                            onDelete = { targetWord ->
+                                // 단어 삭제 요청 처리
+                                scope.launch {
+                                    val success = FileManager.deleteWord(context, targetWord)
+                                    if (success) {
+                                        words = words.filterNot { removed ->
+                                            removed.word == targetWord.word &&
+                                                    removed.category == targetWord.category &&
+                                                    removed.date == targetWord.date
+                                        }
+                                    }
+                                }
+                            }
                         )
                     }
                 }

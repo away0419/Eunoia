@@ -5,15 +5,12 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -162,12 +159,26 @@ fun TodayTab() {
                         .padding(horizontal = 16.dp, vertical = 16.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    items(words) { word ->
+                    items(
+                        items = words,
+                        key = { "${it.category}-${it.word}-${it.source}" }
+                    ) { word ->
                         WordCard(
                             word = word,
                             showDate = true,
                             onClick = {
                                 FileManager.saveToHistory(context, word)
+                            },
+                            onDelete = { targetWord ->
+                                // 단어 삭제 요청 처리
+                                scope.launch {
+                                    val success = FileManager.deleteWord(context, targetWord)
+                                    if (success) {
+                                        words = words.filterNot { removed ->
+                                            removed.word == targetWord.word && removed.category == targetWord.category
+                                        }
+                                    }
+                                }
                             }
                         )
                     }
