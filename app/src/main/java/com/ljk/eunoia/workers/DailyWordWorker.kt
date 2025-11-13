@@ -7,6 +7,7 @@ import com.google.gson.Gson
 import com.ljk.eunoia.ai.GeminiApiService
 import com.ljk.eunoia.data.Category
 import com.ljk.eunoia.data.WordData
+import com.ljk.eunoia.utils.CategoryManager
 import com.ljk.eunoia.utils.FileManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -45,20 +46,14 @@ class DailyWordWorker(
             }
             
             // 각 카테고리별로 새로운 단어 생성
-            val categories = listOf("idiom", "english", "proverb", "word")
-            val categoryNames = mapOf(
-                "idiom" to "사자성어",
-                "english" to "영어",
-                "proverb" to "속담",
-                "word" to "단어"
-            )
+            val categories = CategoryManager.getAllCategories(applicationContext)
             
-            categories.forEach { categoryKey ->
+            categories.forEach { categoryDefinition ->
                 try {
-                    android.util.Log.d("DailyWordWorker", "카테고리 처리 시작: $categoryKey")
+                    android.util.Log.d("DailyWordWorker", "카테고리 처리 시작: ${categoryDefinition.key}")
                     
                     // 기존 단어 목록 가져오기
-                    val existingCategory = FileManager.loadCategory(applicationContext, categoryKey)
+                    val existingCategory = FileManager.loadCategory(applicationContext, categoryDefinition.key)
                     val existingWords = existingCategory?.words?.map { it.word } ?: emptyList()
                     
                     android.util.Log.d("DailyWordWorker", "기존 단어 수: ${existingWords.size}")
@@ -67,23 +62,23 @@ class DailyWordWorker(
                     val newWords = GeminiApiService.generateNewWords(
                         context = applicationContext,
                         existingWords = existingWords,
-                        category = categoryNames[categoryKey] ?: categoryKey
+                        category = categoryDefinition.displayName
                     )
                     
                     android.util.Log.d("DailyWordWorker", "생성된 새 단어 수: ${newWords.size}")
                     
                     if (newWords.isNotEmpty()) {
                         // 기존 JSON 파일에 새 단어 추가
-                        addWordsToCategoryFile(categoryKey, newWords)
-                        android.util.Log.d("DailyWordWorker", "단어 저장 완료: $categoryKey")
+                        addWordsToCategoryFile(categoryDefinition, newWords)
+                        android.util.Log.d("DailyWordWorker", "단어 저장 완료: ${categoryDefinition.key}")
                     } else {
-                        android.util.Log.w("DailyWordWorker", "생성된 단어가 없습니다: $categoryKey")
+                        android.util.Log.w("DailyWordWorker", "생성된 단어가 없습니다: ${categoryDefinition.key}")
                     }
                     
                     // API 호출 간격 (무료 티어 제한 고려)
                     kotlinx.coroutines.delay(2000) // 2초 대기
                 } catch (e: Exception) {
-                    android.util.Log.e("DailyWordWorker", "카테고리 처리 중 오류: $categoryKey", e)
+                    android.util.Log.e("DailyWordWorker", "카테고리 처리 중 오류: ${categoryDefinition.key}", e)
                     e.printStackTrace()
                     // 개별 카테고리 실패는 무시하고 계속 진행
                 }
@@ -102,10 +97,10 @@ class DailyWordWorker(
     /**
      * 카테고리 JSON 파일에 새 단어 추가
      */
-    private suspend fun addWordsToCategoryFile(categoryKey: String, newWords: List<WordData>) {
+    private suspend fun addWordsToCategoryFile(categoryDefinition: CategoryManager.CategoryDefinition, newWords: List<WordData>) {
         try {
             // Assets에서 기존 데이터 로드
-            val existingCategory = FileManager.loadCategory(applicationContext, categoryKey)
+            val existingCategory = FileManager.loadCategory(applicationContext, categoryDefinition.key)
             val existingWords = existingCategory?.words ?: emptyList()
             
             // 중복 제거 (같은 단어가 이미 있으면 제외)
@@ -120,14 +115,14 @@ class DailyWordWorker(
             // 새 단어 추가 (source="ai" 유지)
             val updatedWords = existingWords + wordsToAdd.map { 
                 it.copy(
-                    category = existingCategory?.category ?: categoryKey,
+                    category = categoryDefinition.displayName,
                     source = "ai" // AI로 생성된 단어임을 명시
                 )
             }
             
             // 업데이트된 카테고리 객체 생성
             val updatedCategory = Category(
-                category = existingCategory?.category ?: categoryKey,
+                category = categoryDefinition.displayName,
                 words = updatedWords
             )
             
@@ -135,7 +130,7 @@ class DailyWordWorker(
             val gson = Gson()
             val json = gson.toJson(updatedCategory)
             
-            val file = File(applicationContext.filesDir, "$categoryKey.json")
+            val file = File(applicationContext.filesDir, "${categoryDefinition.key}.json")
             FileWriter(file).use { writer ->
                 writer.write(json)
             }

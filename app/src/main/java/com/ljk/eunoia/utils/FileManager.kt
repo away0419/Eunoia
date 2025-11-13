@@ -17,16 +17,6 @@ import java.util.*
 object FileManager {
     private val gson = Gson()
     private val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-    private val categoryKeyMap = mapOf(
-        "사자성어" to "idiom",
-        "영어" to "english",
-        "속담" to "proverb",
-        "단어" to "word",
-        "idiom" to "idiom",
-        "english" to "english",
-        "proverb" to "proverb",
-        "word" to "word"
-    )
 
     /**
      * Assets 폴더 또는 내부 저장소에서 카테고리별 단어 목록을 로드
@@ -35,15 +25,20 @@ object FileManager {
      * @param categoryName 카테고리 이름 (파일명과 동일)
      * @return 카테고리 객체
      */
-    suspend fun loadCategory(context: Context, categoryName: String): Category? = withContext(Dispatchers.IO) {
+    suspend fun loadCategory(context: Context, categoryKey: String): Category? = withContext(Dispatchers.IO) {
         try {
+            val definition = CategoryManager.getAllCategories(context)
+                .firstOrNull { it.key == categoryKey || it.displayName == categoryKey }
+            val actualKey = definition?.key ?: categoryKey
+            val displayName = definition?.displayName ?: categoryKey
+
             // 먼저 내부 저장소에서 확인 (AI로 추가된 단어가 있을 수 있음)
-            val internalFile = java.io.File(context.filesDir, "$categoryName.json")
+            val internalFile = java.io.File(context.filesDir, "$actualKey.json")
             if (internalFile.exists()) {
                 try {
                     val json = internalFile.readText()
                     val type = object : TypeToken<Category>() {}.type
-                    val internalCategory = gson.fromJson<Category>(json, type)
+                    val internalCategory = gson.fromJson<Category>(json, type)?.copy(category = displayName)
                     if (internalCategory != null) {
                         return@withContext internalCategory
                     }
@@ -52,10 +47,18 @@ object FileManager {
                 }
             }
             
-            // 내부 저장소에 없으면 Assets에서 로드
-            val json = context.assets.open("$categoryName.json").bufferedReader().use { it.readText() }
-            val type = object : TypeToken<Category>() {}.type
-            gson.fromJson<Category>(json, type)
+            // 기본 카테고리는 Assets에서 로드
+            if (definition?.isDefault == true) {
+                val json = context.assets.open("$actualKey.json").bufferedReader().use { it.readText() }
+                val type = object : TypeToken<Category>() {}.type
+                return@withContext gson.fromJson<Category>(json, type)?.copy(category = displayName)
+            }
+
+            // 사용자 정의 카테고리는 빈 카테고리 반환
+            Category(
+                category = displayName,
+                words = emptyList()
+            )
         } catch (e: IOException) {
             e.printStackTrace()
             null
@@ -70,12 +73,12 @@ object FileManager {
     suspend fun getTodayWords(context: Context): List<WordData> = withContext(Dispatchers.IO) {
         try {
             val today = dateFormat.format(Date())
-            val categories = listOf("idiom", "english", "proverb", "word")
+            val categoryDefinitions = CategoryManager.getAllCategories(context)
             val allWords = mutableListOf<WordData>()
 
-            categories.forEach { categoryName ->
+            categoryDefinitions.forEach { categoryDefinition ->
                 try {
-                    val category = loadCategory(context, categoryName)
+                    val category = loadCategory(context, categoryDefinition.key)
                     category?.words?.let { words ->
                         if (words.isNotEmpty()) {
                             // 최신 단어 우선 표시: AI나 사용자가 추가한 단어를 먼저 보여주고, 나머지는 날짜 기반으로 선택
@@ -117,7 +120,7 @@ object FileManager {
                                 // 카테고리 정보를 포함하여 복사 (source가 null이거나 비어있으면 기본값 "asset" 사용)
                                 allWords.add(
                                     word.copy(
-                                        category = category.category,
+                                        category = categoryDefinition.displayName,
                                         date = today,
                                         source = word.source.takeIf { !it.isNullOrEmpty() } ?: "asset" // source가 null이거나 비어있으면 기본값 사용
                                     )
@@ -192,6 +195,27 @@ object FileManager {
         val historyJson = gson.toJson(history)
         prefs.edit().putString("history", historyJson).apply()
     }
+
+    /**
+     * 히스토리에서 특정 카테고리의 단어를 모두 삭제
+     * @param context 컨텍스트
+     * @param categoryDisplayName 카테고리 표시 이름
+     */
+    fun removeHistoryByCategory(context: Context, categoryDisplayName: String) {
+        val prefs = context.getSharedPreferences("word_history", Context.MODE_PRIVATE)
+        val history = getHistoryWords(context)
+        if (history.isEmpty()) {
+            return
+        }
+
+        val updatedHistory = history.filterNot { it.category == categoryDisplayName }
+        if (updatedHistory.size == history.size) {
+            return
+        }
+
+        val historyJson = gson.toJson(updatedHistory)
+        prefs.edit().putString("history", historyJson).apply()
+    }
     
     /**
      * 사용자가 직접 추가한 단어를 카테고리 파일에 저장
@@ -204,15 +228,16 @@ object FileManager {
             // 기존 카테고리 로드
             val existingCategory = loadCategory(context, categoryKey)
             val existingWords = existingCategory?.words?.toMutableList() ?: mutableListOf()
+            val displayName = CategoryManager.resolveDisplayName(context, categoryKey)
             
             // 중복 확인 (같은 단어가 이미 있으면 실패)
-            if (existingWords.any { it.word == word.word && it.category == word.category }) {
+            if (existingWords.any { it.word == word.word }) {
                 return@withContext false
             }
             
             // 사용자 추가 단어 생성 (source="user"로 설정)
             val userWord = word.copy(
-                category = existingCategory?.category ?: categoryKey,
+                category = displayName,
                 source = "user"
             )
             
@@ -221,7 +246,7 @@ object FileManager {
             
             // 업데이트된 카테고리 객체 생성
             val updatedCategory = Category(
-                category = existingCategory?.category ?: categoryKey,
+                category = displayName,
                 words = existingWords
             )
             
@@ -246,7 +271,7 @@ object FileManager {
      */
     suspend fun deleteWord(context: Context, word: WordData): Boolean = withContext(Dispatchers.IO) {
         try {
-            val categoryKey = resolveCategoryKey(word.category)
+            val categoryKey = CategoryManager.resolveCategoryKey(context, word.category) ?: return@withContext false
             val existingCategory = loadCategory(context, categoryKey)
             val existingWords = existingCategory?.words?.toMutableList() ?: return@withContext false
 
@@ -278,22 +303,6 @@ object FileManager {
         } catch (e: Exception) {
             e.printStackTrace()
             false
-        }
-    }
-
-    /**
-     * 화면에 표시되는 카테고리 이름을 파일 키로 변환
-     * @param categoryName 카테고리 표시 이름 또는 키
-     */
-    private fun resolveCategoryKey(categoryName: String): String {
-        val trimmed = categoryName.trim()
-        categoryKeyMap[trimmed]?.let { return it }
-        return when (trimmed.lowercase(Locale.getDefault())) {
-            "사자성어".lowercase(Locale.getDefault()) -> "idiom"
-            "영어".lowercase(Locale.getDefault()) -> "english"
-            "속담".lowercase(Locale.getDefault()) -> "proverb"
-            "단어".lowercase(Locale.getDefault()) -> "word"
-            else -> trimmed
         }
     }
 }

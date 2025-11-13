@@ -7,8 +7,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -19,6 +23,7 @@ import androidx.compose.ui.unit.sp
 import com.ljk.eunoia.ai.GeminiApiService
 import com.ljk.eunoia.data.WordData
 import com.ljk.eunoia.ui.theme.*
+import com.ljk.eunoia.utils.CategoryManager
 import com.ljk.eunoia.utils.FileManager
 import com.ljk.eunoia.utils.WorkManagerHelper
 import kotlinx.coroutines.launch
@@ -42,22 +47,43 @@ fun SettingsScreen(
     }
     var showSuccess by remember { mutableStateOf(false) }
     
+    // 카테고리 관리 상태
+    val categoryDefinitions = remember { mutableStateListOf<CategoryManager.CategoryDefinition>() }
+    var selectedWordCategoryKey by remember { mutableStateOf<String?>(null) }
+    var showAddCategoryDialog by remember { mutableStateOf(false) }
+    var newCategoryName by remember { mutableStateOf("") }
+    var categoryErrorMessage by remember { mutableStateOf<String?>(null) }
+    var categoryToDelete by remember { mutableStateOf<CategoryManager.CategoryDefinition?>(null) }
+    
     // 단어 추가 관련 상태
     var showAddWordDialog by remember { mutableStateOf(false) }
     var wordText by remember { mutableStateOf("") }
     var meaningText by remember { mutableStateOf("") }
-    var selectedCategory by remember { mutableStateOf("사자성어") }
     var showWordSuccess by remember { mutableStateOf(false) }
     var showWordError by remember { mutableStateOf(false) }
-    
-    // 카테고리 키 매핑
-    val categoryKeys = remember {
-        mapOf(
-            "사자성어" to "idiom",
-            "영어" to "english",
-            "속담" to "proverb",
-            "단어" to "word"
-        )
+
+    fun refreshCategories() {
+        val previousSelection = selectedWordCategoryKey
+        val categories = CategoryManager.getAllCategories(context)
+        categoryDefinitions.clear()
+        categoryDefinitions.addAll(categories)
+        selectedWordCategoryKey = when {
+            categories.isEmpty() -> null
+            previousSelection != null && categories.any { it.key == previousSelection } -> previousSelection
+            else -> categories.first().key
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        refreshCategories()
+    }
+
+    LaunchedEffect(categoryDefinitions.size) {
+        if (categoryDefinitions.isEmpty()) {
+            selectedWordCategoryKey = null
+        } else if (selectedWordCategoryKey == null || categoryDefinitions.none { it.key == selectedWordCategoryKey }) {
+            selectedWordCategoryKey = categoryDefinitions.first().key
+        }
     }
     
     Column(
@@ -270,6 +296,133 @@ fun SettingsScreen(
                 }
             }
             
+            // 단어 주제 관리 섹션
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = CardBackground),
+                shape = RoundedCornerShape(16.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(24.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Text(
+                        text = "단어 주제 관리",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 20.sp,
+                        color = TextPrimary
+                    )
+
+                    Text(
+                        text = "기본 주제 4개는 삭제할 수 없으며, 새로 추가한 주제는 내부 저장소에 단어가 저장됩니다.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = TextSecondary,
+                        fontSize = 14.sp,
+                        lineHeight = 20.sp
+                    )
+
+                    if (categoryDefinitions.isEmpty()) {
+                        Text(
+                            text = "등록된 주제가 없습니다. 새 주제를 추가해 주세요.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = TextSecondary
+                        )
+                    } else {
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            categoryDefinitions.forEach { definition ->
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column(
+                                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        Text(
+                                            text = definition.displayName,
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = TextPrimary
+                                        )
+                                        Text(
+                                            text = "파일 키: ${definition.key}",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = TextSecondary,
+                                            fontSize = 12.sp
+                                        )
+                                    }
+
+                                    if (definition.isDefault) {
+                                        Surface(
+                                            color = PrimaryBlue.copy(alpha = 0.12f),
+                                            shape = RoundedCornerShape(12.dp)
+                                        ) {
+                                            Text(
+                                                text = "기본",
+                                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                                color = PrimaryBlue,
+                                                fontSize = 12.sp,
+                                                fontWeight = FontWeight.SemiBold
+                                            )
+                                        }
+                                    } else {
+                                        IconButton(
+                                            onClick = { categoryToDelete = definition }
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Delete,
+                                                contentDescription = "주제 삭제",
+                                                tint = TextSecondary
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    if (categoryErrorMessage != null) {
+                        Text(
+                            text = categoryErrorMessage ?: "",
+                            color = androidx.compose.ui.graphics.Color(0xFFF44336),
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+
+                    OutlinedButton(
+                        onClick = {
+                            categoryErrorMessage = null
+                            newCategoryName = ""
+                            showAddCategoryDialog = true
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            contentColor = PrimaryBlue
+                        )
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = "주제 추가",
+                            tint = PrimaryBlue
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "새 주제 추가",
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                }
+            }
+
             // 단어 추가 섹션
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -339,12 +492,26 @@ fun SettingsScreen(
     
     // 단어 추가 다이얼로그
     if (showAddWordDialog) {
+        val availableCategories = categoryDefinitions.toList()
+
+        LaunchedEffect(showAddWordDialog, availableCategories.size) {
+            if (showAddWordDialog && availableCategories.isNotEmpty()) {
+                if (selectedWordCategoryKey == null || availableCategories.none { it.key == selectedWordCategoryKey }) {
+                    selectedWordCategoryKey = availableCategories.first().key
+                }
+            }
+        }
+
+        val resolvedCategoryName = selectedWordCategoryKey?.let {
+            CategoryManager.resolveDisplayName(context, it)
+        }.orEmpty()
+        val canSubmit = wordText.isNotBlank() && meaningText.isNotBlank() && selectedWordCategoryKey != null
+
         AlertDialog(
-            onDismissRequest = { 
+            onDismissRequest = {
                 showAddWordDialog = false
                 wordText = ""
                 meaningText = ""
-                selectedCategory = "사자성어"
                 showWordSuccess = false
                 showWordError = false
             },
@@ -361,41 +528,55 @@ fun SettingsScreen(
                 ) {
                     // 카테고리 선택
                     var expanded by remember { mutableStateOf(false) }
-                    val categories = listOf("사자성어", "영어", "속담", "단어")
-                    
+
                     ExposedDropdownMenuBox(
                         expanded = expanded,
-                        onExpandedChange = { expanded = !expanded }
+                        onExpandedChange = {
+                            if (availableCategories.isNotEmpty()) {
+                                expanded = !expanded
+                            }
+                        }
                     ) {
                         OutlinedTextField(
-                            value = selectedCategory,
+                            value = resolvedCategoryName,
                             onValueChange = {},
                             readOnly = true,
+                            enabled = availableCategories.isNotEmpty(),
                             label = { Text("카테고리") },
+                            placeholder = { Text("주제를 선택하세요") },
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                            modifier = Modifier
-                                .fillMaxWidth(),
+                            modifier = Modifier.fillMaxWidth(),
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedBorderColor = PrimaryBlue,
-                                unfocusedBorderColor = Divider
+                                unfocusedBorderColor = Divider,
+                                disabledBorderColor = Divider,
+                                disabledTextColor = TextSecondary
                             )
                         )
                         ExposedDropdownMenu(
                             expanded = expanded,
                             onDismissRequest = { expanded = false }
                         ) {
-                            categories.forEach { category ->
+                            availableCategories.forEach { definition ->
                                 DropdownMenuItem(
-                                    text = { Text(category) },
+                                    text = { Text(definition.displayName) },
                                     onClick = {
-                                        selectedCategory = category
+                                        selectedWordCategoryKey = definition.key
                                         expanded = false
                                     }
                                 )
                             }
                         }
                     }
-                    
+
+                    if (availableCategories.isEmpty()) {
+                        Text(
+                            text = "먼저 주제를 추가해야 단어를 등록할 수 있습니다.",
+                            color = androidx.compose.ui.graphics.Color(0xFFF44336),
+                            fontSize = 13.sp
+                        )
+                    }
+
                     // 단어 입력
                     OutlinedTextField(
                         value = wordText,
@@ -409,7 +590,7 @@ fun SettingsScreen(
                             unfocusedBorderColor = Divider
                         )
                     )
-                    
+
                     // 뜻 입력
                     OutlinedTextField(
                         value = meaningText,
@@ -428,23 +609,24 @@ fun SettingsScreen(
             confirmButton = {
                 Button(
                     onClick = {
-                        if (wordText.isNotBlank() && meaningText.isNotBlank()) {
+                        if (wordText.isNotBlank() && meaningText.isNotBlank() && selectedWordCategoryKey != null) {
                             scope.launch {
-                                val categoryKey = categoryKeys[selectedCategory] as? String ?: "word"
+                                val categoryKey = selectedWordCategoryKey ?: return@launch
+                                val displayName = CategoryManager.resolveDisplayName(context, categoryKey)
+
                                 val newWord = WordData(
                                     word = wordText.trim(),
                                     meaning = meaningText.trim(),
-                                    category = selectedCategory,
+                                    category = displayName,
                                     source = "user"
                                 )
-                                
+
                                 val success = FileManager.addUserWord(context, newWord, categoryKey)
                                 if (success) {
                                     showWordSuccess = true
                                     showWordError = false
                                     wordText = ""
                                     meaningText = ""
-                                    selectedCategory = "사자성어"
                                     showAddWordDialog = false
                                 } else {
                                     showWordError = true
@@ -456,20 +638,157 @@ fun SettingsScreen(
                     colors = ButtonDefaults.buttonColors(
                         containerColor = PrimaryBlue
                     ),
-                    enabled = wordText.isNotBlank() && meaningText.isNotBlank()
+                    enabled = canSubmit
                 ) {
                     Text("추가", fontWeight = FontWeight.SemiBold)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { 
+                TextButton(onClick = {
                     showAddWordDialog = false
                     wordText = ""
                     meaningText = ""
-                    selectedCategory = "사자성어"
                     showWordSuccess = false
                     showWordError = false
                 }) {
+                    Text("취소")
+                }
+            },
+            containerColor = CardBackground,
+            shape = RoundedCornerShape(20.dp)
+        )
+    }
+
+    if (showAddCategoryDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                showAddCategoryDialog = false
+                newCategoryName = ""
+                categoryErrorMessage = null
+            },
+            title = {
+                Text(
+                    text = "새 주제 추가",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 20.sp
+                )
+            },
+            text = {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    OutlinedTextField(
+                        value = newCategoryName,
+                        onValueChange = {
+                            newCategoryName = it
+                            if (categoryErrorMessage != null) {
+                                categoryErrorMessage = null
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        label = { Text("주제 이름") },
+                        placeholder = { Text("예: IT 용어, 회화 표현") },
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = PrimaryBlue,
+                            unfocusedBorderColor = Divider
+                        )
+                    )
+
+                    if (!categoryErrorMessage.isNullOrBlank()) {
+                        Text(
+                            text = categoryErrorMessage ?: "",
+                            color = androidx.compose.ui.graphics.Color(0xFFF44336),
+                            fontSize = 13.sp
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val trimmedName = newCategoryName.trim()
+                        if (trimmedName.isEmpty()) {
+                            categoryErrorMessage = "주제 이름을 입력해주세요."
+                            return@Button
+                        }
+
+                        val added = CategoryManager.addCategory(context, trimmedName)
+                        if (added != null) {
+                            showAddCategoryDialog = false
+                            newCategoryName = ""
+                            categoryErrorMessage = null
+                            refreshCategories()
+                            selectedWordCategoryKey = added.key
+                        } else {
+                            categoryErrorMessage = "이미 존재하는 주제이거나 추가할 수 없습니다."
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = PrimaryBlue
+                    )
+                ) {
+                    Text("추가", fontWeight = FontWeight.SemiBold)
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showAddCategoryDialog = false
+                        newCategoryName = ""
+                        categoryErrorMessage = null
+                    }
+                ) {
+                    Text("취소")
+                }
+            },
+            containerColor = CardBackground,
+            shape = RoundedCornerShape(20.dp)
+        )
+    }
+
+    categoryToDelete?.let { definition ->
+        AlertDialog(
+            onDismissRequest = { categoryToDelete = null },
+            title = {
+                Text(
+                    text = "주제 삭제",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 20.sp
+                )
+            },
+            text = {
+                Text(
+                    text = "\"${definition.displayName}\" 주제를 삭제하면 저장된 단어도 함께 삭제됩니다. 계속할까요?",
+                    color = TextSecondary,
+                    fontSize = 14.sp,
+                    lineHeight = 20.sp
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val success = CategoryManager.deleteCategory(context, definition.key)
+                        if (!success) {
+                            categoryErrorMessage = "기본 주제는 삭제할 수 없습니다."
+                        } else {
+                            categoryErrorMessage = null
+                            refreshCategories()
+                            if (selectedWordCategoryKey == definition.key) {
+                                selectedWordCategoryKey = categoryDefinitions.firstOrNull()?.key
+                            }
+                        }
+                        categoryToDelete = null
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = androidx.compose.ui.graphics.Color(0xFFF44336)
+                    )
+                ) {
+                    Text("삭제", fontWeight = FontWeight.SemiBold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { categoryToDelete = null }) {
                     Text("취소")
                 }
             },
