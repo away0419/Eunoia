@@ -527,46 +527,58 @@ fun SettingsScreen(
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     // 카테고리 선택
-                    var expanded by remember { mutableStateOf(false) }
+                    var expanded by remember(showAddWordDialog) { mutableStateOf(false) }
 
-                    ExposedDropdownMenuBox(
-                        expanded = expanded,
-                        onExpandedChange = {
-                            if (availableCategories.isNotEmpty()) {
-                                expanded = !expanded
+                    if (availableCategories.isNotEmpty()) {
+                        ExposedDropdownMenuBox(
+                            expanded = expanded,
+                            onExpandedChange = { expanded = it }
+                        ) {
+                            OutlinedTextField(
+                                value = resolvedCategoryName,
+                                onValueChange = {},
+                                readOnly = true,
+                                enabled = true,
+                                label = { Text("카테고리") },
+                                placeholder = { Text("주제를 선택하세요") },
+                                trailingIcon = { 
+                                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) 
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedBorderColor = PrimaryBlue,
+                                    unfocusedBorderColor = Divider
+                                )
+                            )
+                            ExposedDropdownMenu(
+                                expanded = expanded,
+                                onDismissRequest = { expanded = false }
+                            ) {
+                                availableCategories.forEach { definition ->
+                                    DropdownMenuItem(
+                                        text = { Text(definition.displayName) },
+                                        onClick = {
+                                            selectedWordCategoryKey = definition.key
+                                            expanded = false
+                                        }
+                                    )
+                                }
                             }
                         }
-                    ) {
+                    } else {
                         OutlinedTextField(
-                            value = resolvedCategoryName,
+                            value = "",
                             onValueChange = {},
                             readOnly = true,
-                            enabled = availableCategories.isNotEmpty(),
+                            enabled = false,
                             label = { Text("카테고리") },
                             placeholder = { Text("주제를 선택하세요") },
-                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
                             modifier = Modifier.fillMaxWidth(),
                             colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = PrimaryBlue,
-                                unfocusedBorderColor = Divider,
                                 disabledBorderColor = Divider,
                                 disabledTextColor = TextSecondary
                             )
                         )
-                        ExposedDropdownMenu(
-                            expanded = expanded,
-                            onDismissRequest = { expanded = false }
-                        ) {
-                            availableCategories.forEach { definition ->
-                                DropdownMenuItem(
-                                    text = { Text(definition.displayName) },
-                                    onClick = {
-                                        selectedWordCategoryKey = definition.key
-                                        expanded = false
-                                    }
-                                )
-                            }
-                        }
                     }
 
                     if (availableCategories.isEmpty()) {
