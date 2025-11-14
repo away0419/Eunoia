@@ -4,7 +4,7 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- 열린 책 아이콘 -->
+    <!-- 단색 버전: 열린 책 아이콘 -->
     <!-- 왼쪽 페이지 -->
     <path
         android:fillColor="#FFFFFF"
@@ -15,56 +15,57 @@
         android:pathData="M58,25 L58,75 L88,75 L88,25 Z" />
     <!-- 책 중앙선 -->
     <path
-        android:strokeColor="#E5E8EB"
+        android:strokeColor="#FFFFFF"
         android:strokeWidth="1.5"
         android:pathData="M54,25 L54,75" />
     
     <!-- 왼쪽 페이지 텍스트 라인 -->
     <path
-        android:strokeColor="#8B95A1"
+        android:strokeColor="#FFFFFF"
         android:strokeWidth="2"
         android:pathData="M26,35 L44,35" />
     <path
-        android:strokeColor="#8B95A1"
+        android:strokeColor="#FFFFFF"
         android:strokeWidth="2"
         android:pathData="M26,42 L44,42" />
     <path
-        android:strokeColor="#8B95A1"
+        android:strokeColor="#FFFFFF"
         android:strokeWidth="2"
         android:pathData="M26,49 L40,49" />
     <path
-        android:strokeColor="#8B95A1"
+        android:strokeColor="#FFFFFF"
         android:strokeWidth="2"
         android:pathData="M26,56 L44,56" />
     <path
-        android:strokeColor="#8B95A1"
+        android:strokeColor="#FFFFFF"
         android:strokeWidth="2"
         android:pathData="M26,63 L38,63" />
     
     <!-- 오른쪽 페이지 텍스트 라인 -->
     <path
-        android:strokeColor="#8B95A1"
+        android:strokeColor="#FFFFFF"
         android:strokeWidth="2"
         android:pathData="M64,35 L82,35" />
     <path
-        android:strokeColor="#8B95A1"
+        android:strokeColor="#FFFFFF"
         android:strokeWidth="2"
         android:pathData="M64,42 L82,42" />
     <path
-        android:strokeColor="#8B95A1"
+        android:strokeColor="#FFFFFF"
         android:strokeWidth="2"
         android:pathData="M64,49 L78,49" />
     <path
-        android:strokeColor="#8B95A1"
+        android:strokeColor="#FFFFFF"
         android:strokeWidth="2"
         android:pathData="M64,56 L82,56" />
     <path
-        android:strokeColor="#8B95A1"
+        android:strokeColor="#FFFFFF"
         android:strokeWidth="2"
         android:pathData="M64,63 L76,63" />
     
-    <!-- 별표 아이콘 (학습 완료 표시) -->
+    <!-- 별표 아이콘 -->
     <path
-        android:fillColor="#FFD700"
+        android:fillColor="#FFFFFF"
         android:pathData="M44,18 L45.5,22 L50,22.5 L46.5,25.5 L47.5,30 L44,27.5 L40.5,30 L41.5,25.5 L38,22.5 L42.5,22 Z" />
 </vector>
+
