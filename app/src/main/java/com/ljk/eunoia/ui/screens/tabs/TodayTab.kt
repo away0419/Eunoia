@@ -19,6 +19,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.asPaddingValues
 import com.ljk.eunoia.data.WordData
 import com.ljk.eunoia.ui.components.WordCard
 import com.ljk.eunoia.ui.screens.TossIconButton
@@ -192,7 +195,10 @@ fun TodayTab() {
                 } else {
                     LazyColumn(
                         verticalArrangement = Arrangement.spacedBy(12.dp),
-                        contentPadding = PaddingValues(vertical = 16.dp)
+                        contentPadding = PaddingValues(
+                            top = 16.dp,
+                            bottom = 16.dp + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+                        )
                     ) {
                         items(categoriesWithCount) { (categoryName, count) ->
                             // 주제 카드
@@ -257,7 +263,10 @@ fun TodayTab() {
                 } else {
                     LazyColumn(
                         verticalArrangement = Arrangement.spacedBy(16.dp),
-                        contentPadding = PaddingValues(vertical = 16.dp)
+                        contentPadding = PaddingValues(
+                            top = 16.dp,
+                            bottom = 16.dp + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+                        )
                     ) {
                         items(
                             items = filteredWords,

@@ -20,6 +20,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.asPaddingValues
 import com.ljk.eunoia.ai.GeminiApiService
 import com.ljk.eunoia.data.WordData
 import com.ljk.eunoia.ui.theme.*
@@ -122,7 +125,12 @@ fun SettingsScreen(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(20.dp),
+                .padding(
+                    start = 20.dp,
+                    end = 20.dp,
+                    top = 20.dp,
+                    bottom = 20.dp + WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+                ),
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
             // API 키 입력 섹션

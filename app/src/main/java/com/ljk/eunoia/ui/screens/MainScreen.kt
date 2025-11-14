@@ -24,6 +24,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.asPaddingValues
 import com.ljk.eunoia.ui.screens.tabs.HistoryTab
 import com.ljk.eunoia.ui.screens.tabs.QuizTab
 import com.ljk.eunoia.ui.screens.tabs.TodayTab
