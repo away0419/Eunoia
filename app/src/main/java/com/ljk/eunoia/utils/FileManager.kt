@@ -235,10 +235,14 @@ object FileManager {
                 return@withContext false
             }
             
-            // 사용자 추가 단어 생성 (source="user"로 설정)
+            // 오늘 날짜 가져오기
+            val today = dateFormat.format(Date())
+            
+            // 사용자 추가 단어 생성 (source="user"로 설정, 날짜 추가)
             val userWord = word.copy(
                 category = displayName,
-                source = "user"
+                source = "user",
+                date = today
             )
             
             // 새 단어 추가
@@ -256,6 +260,9 @@ object FileManager {
             java.io.FileWriter(file).use { writer ->
                 writer.write(json)
             }
+            
+            // 히스토리에 자동으로 저장
+            saveToHistory(context, userWord)
             
             true
         } catch (e: Exception) {

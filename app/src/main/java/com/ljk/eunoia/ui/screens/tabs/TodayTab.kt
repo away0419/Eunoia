@@ -166,9 +166,6 @@ fun TodayTab() {
                         WordCard(
                             word = word,
                             showDate = true,
-                            onClick = {
-                                FileManager.saveToHistory(context, word)
-                            },
                             onDelete = { targetWord ->
                                 // 단어 삭제 요청 처리
                                 scope.launch {

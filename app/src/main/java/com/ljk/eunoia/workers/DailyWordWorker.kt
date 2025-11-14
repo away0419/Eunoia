@@ -112,13 +112,20 @@ class DailyWordWorker(
                 return
             }
             
-            // 새 단어 추가 (source="ai" 유지)
-            val updatedWords = existingWords + wordsToAdd.map { 
+            // 오늘 날짜 가져오기
+            val today = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
+                .format(java.util.Date())
+            
+            // 새 단어 추가 (source="ai" 유지, 날짜 추가)
+            val wordsWithDate = wordsToAdd.map { 
                 it.copy(
                     category = categoryDefinition.displayName,
-                    source = "ai" // AI로 생성된 단어임을 명시
+                    source = "ai", // AI로 생성된 단어임을 명시
+                    date = today
                 )
             }
+            
+            val updatedWords = existingWords + wordsWithDate
             
             // 업데이트된 카테고리 객체 생성
             val updatedCategory = Category(
@@ -133,6 +140,11 @@ class DailyWordWorker(
             val file = File(applicationContext.filesDir, "${categoryDefinition.key}.json")
             FileWriter(file).use { writer ->
                 writer.write(json)
+            }
+            
+            // 히스토리에 자동으로 저장
+            wordsWithDate.forEach { word ->
+                FileManager.saveToHistory(applicationContext, word)
             }
         } catch (e: Exception) {
             e.printStackTrace()
