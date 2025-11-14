@@ -142,29 +142,21 @@ fun QuizTab() {
                 LazyColumn(
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    itemsIndexed(
+                    items(
                         items = words,
-                        key = { index, word -> "quiz_${index}_${word.word}|${word.meaning}|${word.category}" }
-                    ) { index, word ->
+                        key = { it.id }
+                    ) { word ->
                         QuizWordCard(
                             word = word,
                             onCorrect = { correctWord ->
                                 // 맞춘 경우 저장하고 화면에서 제거
                                 FileManager.saveQuizResult(context, correctWord, true)
-                                words = words.filterNot { 
-                                    it.word == correctWord.word && 
-                                    it.meaning == correctWord.meaning && 
-                                    it.category == correctWord.category 
-                                }
+                                words = words.filterNot { it.id == correctWord.id }
                             },
                             onIncorrect = { incorrectWord ->
                                 // 틀린 경우 저장하고 화면에서 제거
                                 FileManager.saveQuizResult(context, incorrectWord, false)
-                                words = words.filterNot { 
-                                    it.word == incorrectWord.word && 
-                                    it.meaning == incorrectWord.meaning && 
-                                    it.category == incorrectWord.category 
-                                }
+                                words = words.filterNot { it.id == incorrectWord.id }
                             }
                         )
                     }

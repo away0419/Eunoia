@@ -262,7 +262,7 @@ fun HistoryTab() {
                     ) {
                         items(
                             items = filteredWords,
-                            key = { "${it.category}-${it.word}-${it.source}-${it.date}" }
+                            key = { it.id }
                         ) { word ->
                             // asset 단어는 삭제 불가
                             val canDelete = word.source != "asset" && (word.source?.isNotEmpty() == true)
@@ -276,11 +276,7 @@ fun HistoryTab() {
                                         scope.launch {
                                             val success = FileManager.deleteWord(context, targetWord)
                                             if (success) {
-                                                words = words.filterNot { removed ->
-                                                    removed.word == targetWord.word &&
-                                                            removed.category == targetWord.category &&
-                                                            removed.date == targetWord.date
-                                                }
+                                                words = words.filterNot { it.id == targetWord.id }
                                             }
                                         }
                                     }

@@ -41,7 +41,18 @@ object FileManager {
                     val type = object : TypeToken<Category>() {}.type
                     val internalCategory = gson.fromJson<Category>(json, type)?.copy(category = displayName)
                     if (internalCategory != null) {
-                        return@withContext internalCategory
+                        // ID가 없는 단어에 ID 부여
+                        val wordsWithId = internalCategory.words.map { word ->
+                            if (word.id.isNullOrBlank()) {
+                                word.copy(
+                                    id = java.util.UUID.randomUUID().toString(),
+                                    category = displayName
+                                )
+                            } else {
+                                word.copy(category = displayName)
+                            }
+                        }
+                        return@withContext internalCategory.copy(words = wordsWithId)
                     }
                 } catch (e: Exception) {
                     e.printStackTrace()
@@ -52,7 +63,21 @@ object FileManager {
             if (definition?.isDefault == true) {
                 val json = context.assets.open("$actualKey.json").bufferedReader().use { it.readText() }
                 val type = object : TypeToken<Category>() {}.type
-                return@withContext gson.fromJson<Category>(json, type)?.copy(category = displayName)
+                val category = gson.fromJson<Category>(json, type)?.copy(category = displayName)
+                if (category != null) {
+                    // ID가 없는 단어에 ID 부여
+                    val wordsWithId = category.words.map { word ->
+                        if (word.id.isNullOrBlank()) {
+                            word.copy(
+                                id = java.util.UUID.randomUUID().toString(),
+                                category = displayName
+                            )
+                        } else {
+                            word.copy(category = displayName)
+                        }
+                    }
+                    return@withContext category.copy(words = wordsWithId)
+                }
             }
 
             // 사용자 정의 카테고리는 빈 카테고리 반환
@@ -126,8 +151,14 @@ object FileManager {
                             
                             selectedWords.forEach { word ->
                                 // 카테고리 정보를 포함하여 복사 (source가 null이거나 비어있으면 기본값 "asset" 사용)
+                                val wordId = if (word.id.isNullOrBlank()) {
+                                    java.util.UUID.randomUUID().toString()
+                                } else {
+                                    word.id
+                                }
                                 allWords.add(
                                     word.copy(
+                                        id = wordId,
                                         category = categoryDefinition.displayName,
                                         date = today,
                                         source = word.source.takeIf { !it.isNullOrEmpty() } ?: "asset" // source가 null이거나 비어있으면 기본값 사용
@@ -159,7 +190,15 @@ object FileManager {
         val historyJson = prefs.getString("history", "[]") ?: "[]"
         val type = object : TypeToken<List<WordData>>() {}.type
         return try {
-            gson.fromJson<List<WordData>>(historyJson, type) ?: emptyList()
+            val words = gson.fromJson<List<WordData>>(historyJson, type) ?: emptyList()
+            // ID가 없는 단어에 ID 부여, category가 null인 경우 필터링
+            words.filter { it.category != null }.map { word ->
+                if (word.id.isNullOrBlank()) {
+                    word.copy(id = java.util.UUID.randomUUID().toString())
+                } else {
+                    word
+                }
+            }
         } catch (e: Exception) {
             emptyList()
         }
@@ -287,7 +326,14 @@ object FileManager {
                     dateWords.random()
                 }
                 
-                selectedWords.add(selected)
+                // ID가 없으면 생성
+                val selectedWithId = if (selected.id.isNullOrBlank()) {
+                    selected.copy(id = java.util.UUID.randomUUID().toString())
+                } else {
+                    selected
+                }
+                
+                selectedWords.add(selectedWithId)
                 
                 // 선택 횟수 업데이트
                 val key = getWordKey(selected)

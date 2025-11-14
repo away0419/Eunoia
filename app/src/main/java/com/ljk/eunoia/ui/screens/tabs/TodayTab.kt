@@ -161,7 +161,7 @@ fun TodayTab() {
                 ) {
                     items(
                         items = words,
-                        key = { "${it.category}-${it.word}-${it.source}" }
+                        key = { it.id }
                     ) { word ->
                         // asset 단어는 삭제 불가
                         val canDelete = word.source != "asset" && (word.source?.isNotEmpty() == true)
@@ -175,9 +175,7 @@ fun TodayTab() {
                                     scope.launch {
                                         val success = FileManager.deleteWord(context, targetWord)
                                         if (success) {
-                                            words = words.filterNot { removed ->
-                                                removed.word == targetWord.word && removed.category == targetWord.category
-                                            }
+                                            words = words.filterNot { it.id == targetWord.id }
                                         }
                                     }
                                 }
