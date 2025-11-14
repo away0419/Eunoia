@@ -5,6 +5,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -15,8 +17,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ljk.eunoia.data.WordData
 import com.ljk.eunoia.ui.components.QuizWordCard
+import com.ljk.eunoia.ui.screens.TossIconButton
 import com.ljk.eunoia.ui.theme.*
 import com.ljk.eunoia.utils.FileManager
+import kotlinx.coroutines.launch
 
 /**
  * 퀴즈 탭 - 단어나 뜻을 블러 처리하고 탭하여 확인 (토스 스타일)
@@ -24,10 +28,13 @@ import com.ljk.eunoia.utils.FileManager
 @Composable
 fun QuizTab() {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     var words by remember { mutableStateOf<List<WordData>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
+    var isRefreshing by remember { mutableStateOf(false) }
     
-    LaunchedEffect(Unit) {
+    // 단어 로드 함수
+    suspend fun loadWords() {
         try {
             words = FileManager.getQuizWords(context)
         } catch (e: Exception) {
@@ -35,7 +42,13 @@ fun QuizTab() {
             words = emptyList()
         } finally {
             isLoading = false
+            isRefreshing = false
         }
+    }
+    
+    // 초기 로드
+    LaunchedEffect(Unit) {
+        loadWords()
     }
     
     Column(
@@ -49,25 +62,56 @@ fun QuizTab() {
             color = CardBackground,
             shadowElevation = 1.dp
         ) {
-            Column(
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 24.dp)
+                    .padding(horizontal = 20.dp, vertical = 24.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = "퀴즈",
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = TextPrimary,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 28.sp
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "단어나 뜻을 탭하여 정답을 확인하세요",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = TextSecondary,
-                    fontSize = 14.sp
-                )
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "퀴즈",
+                        style = MaterialTheme.typography.headlineMedium,
+                        color = TextPrimary,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 28.sp
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "단어나 뜻을 탭하여 정답을 확인하세요",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = TextSecondary,
+                        fontSize = 14.sp
+                    )
+                }
+                
+                // 새로고침 버튼 (토스 스타일)
+                if (isRefreshing) {
+                    Box(
+                        modifier = Modifier
+                            .size(48.dp)
+                            .padding(8.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            color = PrimaryBlue,
+                            strokeWidth = 2.dp
+                        )
+                    }
+                } else {
+                    TossIconButton(
+                        onClick = {
+                            isRefreshing = true
+                            scope.launch {
+                                loadWords()
+                            }
+                        },
+                        icon = Icons.Default.Refresh,
+                        contentDescription = "새로고침"
+                    )
+                }
             }
         }
         
