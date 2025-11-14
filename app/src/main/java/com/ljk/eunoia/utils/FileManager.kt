@@ -285,6 +285,12 @@ object FileManager {
      */
     suspend fun deleteWord(context: Context, word: WordData): Boolean = withContext(Dispatchers.IO) {
         try {
+            // asset 단어는 삭제 불가
+            val source = word.source ?: ""
+            if (source == "asset" || source.isEmpty()) {
+                return@withContext false
+            }
+            
             val categoryKey = CategoryManager.resolveCategoryKey(context, word.category) ?: return@withContext false
             val existingCategory = loadCategory(context, categoryKey)
             val existingWords = existingCategory?.words?.toMutableList() ?: return@withContext false

@@ -264,21 +264,28 @@ fun HistoryTab() {
                             items = filteredWords,
                             key = { "${it.category}-${it.word}-${it.source}-${it.date}" }
                         ) { word ->
+                            // asset 단어는 삭제 불가
+                            val canDelete = word.source != "asset" && (word.source?.isNotEmpty() == true)
+                            
                             WordCard(
                                 word = word,
                                 showDate = true,
-                                onDelete = { targetWord ->
-                                    // 단어 삭제 요청 처리
-                                    scope.launch {
-                                        val success = FileManager.deleteWord(context, targetWord)
-                                        if (success) {
-                                            words = words.filterNot { removed ->
-                                                removed.word == targetWord.word &&
-                                                        removed.category == targetWord.category &&
-                                                        removed.date == targetWord.date
+                                onDelete = if (canDelete) {
+                                    { targetWord ->
+                                        // 단어 삭제 요청 처리
+                                        scope.launch {
+                                            val success = FileManager.deleteWord(context, targetWord)
+                                            if (success) {
+                                                words = words.filterNot { removed ->
+                                                    removed.word == targetWord.word &&
+                                                            removed.category == targetWord.category &&
+                                                            removed.date == targetWord.date
+                                                }
                                             }
                                         }
                                     }
+                                } else {
+                                    null // asset 단어는 삭제 불가
                                 }
                             )
                         }
