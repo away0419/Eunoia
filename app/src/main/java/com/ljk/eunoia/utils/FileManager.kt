@@ -222,6 +222,15 @@ object FileManager {
                 emptyMap()
             }.toMutableMap()
             
+            // 각 단어의 맞춘 여부 점수 (맞춘 횟수 - 틀린 횟수, 높을수록 출현 확률 낮음)
+            val quizScoresJson = prefs.getString("quiz_scores", "{}") ?: "{}"
+            val quizScoresType = object : TypeToken<Map<String, Int>>() {}.type
+            val quizScores = try {
+                gson.fromJson<Map<String, Int>>(quizScoresJson, quizScoresType) ?: emptyMap()
+            } catch (e: Exception) {
+                emptyMap()
+            }.toMutableMap()
+            
             // 단어별 고유 키 생성 (word + meaning + category)
             fun getWordKey(word: WordData): String {
                 return "${word.word}|${word.meaning}|${word.category}"
@@ -231,7 +240,7 @@ object FileManager {
             val selectedWords = mutableListOf<WordData>()
             val maxWords = 30
             
-            // 가중치 기반 선택 알고리즘 (출현 횟수 고려)
+            // 가중치 기반 선택 알고리즘 (출현 횟수 및 맞춘 여부 고려)
             repeat(maxWords) {
                 // 날짜별로 가중치에 따라 선택
                 val random = Random.nextDouble() * totalWeight
@@ -249,24 +258,27 @@ object FileManager {
                 // 선택된 날짜가 없으면 첫 번째 날짜 사용
                 selectedDate = selectedDate ?: sortedDates.firstOrNull()
                 if (selectedDate == null) {
-                    return@repeat // break 대신 return@repeat 사용
+                    return@repeat
                 }
                 
                 val dateWords = wordsByDate[selectedDate]
                 if (dateWords == null || dateWords.isEmpty()) {
-                    return@repeat // continue 대신 return@repeat 사용
+                    return@repeat
                 }
                 
-                // 출현 횟수를 고려하여 선택 (적게 나온 단어 우선)
-                val wordWithCounts = dateWords.map { word ->
+                // 출현 횟수와 맞춘 여부를 고려하여 선택
+                val wordWithScores = dateWords.map { word ->
                     val key = getWordKey(word)
                     val count = wordCounts[key] ?: 0
-                    Pair(word, count)
+                    val score = quizScores[key] ?: 0 // 맞춘 횟수 - 틀린 횟수 (높을수록 출현 확률 낮음)
+                    // 점수가 낮을수록(틀린 경우가 많을수록) 우선 선택
+                    val priority = count - (score * 2) // 맞춘 경우 점수가 높아지므로 우선순위 낮아짐
+                    Triple(word, count, priority)
                 }
                 
-                // 최소 출현 횟수를 가진 단어들 중에서 선택
-                val minCount = wordWithCounts.minOfOrNull { it.second } ?: 0
-                val candidates = wordWithCounts.filter { it.second == minCount }
+                // 최소 우선순위를 가진 단어들 중에서 선택
+                val minPriority = wordWithScores.minOfOrNull { it.third } ?: 0
+                val candidates = wordWithScores.filter { it.third == minPriority }
                 
                 // 후보가 있으면 랜덤 선택, 없으면 전체에서 랜덤 선택
                 val selected = if (candidates.isNotEmpty()) {
@@ -291,6 +303,35 @@ object FileManager {
             e.printStackTrace()
             emptyList()
         }
+    }
+
+    /**
+     * 퀴즈에서 단어 맞춘 여부 저장
+     * @param context 컨텍스트
+     * @param word 단어
+     * @param isCorrect 맞춤 여부 (true: 맞음, false: 틀림)
+     */
+    fun saveQuizResult(context: Context, word: WordData, isCorrect: Boolean) {
+        val prefs = context.getSharedPreferences("quiz_word_counts", Context.MODE_PRIVATE)
+        val quizScoresJson = prefs.getString("quiz_scores", "{}") ?: "{}"
+        val quizScoresType = object : TypeToken<Map<String, Int>>() {}.type
+        val quizScores = try {
+            gson.fromJson<Map<String, Int>>(quizScoresJson, quizScoresType) ?: emptyMap()
+        } catch (e: Exception) {
+            emptyMap()
+        }.toMutableMap()
+        
+        val key = "${word.word}|${word.meaning}|${word.category}"
+        val currentScore = quizScores[key] ?: 0
+        // 맞춘 경우 점수 증가 (출현 확률 낮아짐), 틀린 경우 점수 감소 (출현 확률 높아짐)
+        quizScores[key] = if (isCorrect) {
+            currentScore + 1
+        } else {
+            currentScore - 1
+        }
+        
+        val updatedScoresJson = gson.toJson(quizScores)
+        prefs.edit().putString("quiz_scores", updatedScoresJson).apply()
     }
 
     /**
