@@ -67,6 +67,7 @@ object FileManager {
 
     /**
      * 오늘 날짜에 해당하는 단어들을 가져옴 (각 카테고리에서 5개씩)
+     * 우선순위: 오늘 날짜의 AI 단어 > 오늘 날짜의 사용자 추가 단어 > 기본 asset 단어
      * @param context 컨텍스트
      * @return 오늘의 단어 목록
      */
@@ -81,25 +82,31 @@ object FileManager {
                     val category = loadCategory(context, categoryDefinition.key)
                     category?.words?.let { words ->
                         if (words.isNotEmpty()) {
-                            // 최신 단어 우선 표시: AI나 사용자가 추가한 단어를 먼저 보여주고, 나머지는 날짜 기반으로 선택
-                            val aiWords = words.filter { 
+                            // 1. 오늘 날짜의 AI 단어들 (우선순위 1)
+                            val todayAiWords = words.filter { 
                                 val source = it.source ?: ""
-                                source == "ai" || source == "user"
+                                source == "ai" && it.date == today
                             }
+                            
+                            // 2. 오늘 날짜의 사용자 추가 단어들 (우선순위 2)
+                            val todayUserWords = words.filter { 
+                                val source = it.source ?: ""
+                                source == "user" && it.date == today
+                            }
+                            
+                            // 3. 기본 asset 단어들 (우선순위 3)
                             val assetWords = words.filter { 
                                 val source = it.source ?: ""
                                 source == "asset" || source.isEmpty()
                             }
                             
-                            // AI/사용자 추가 단어 중 최신 5개 (최신순으로 정렬)
-                            val recentAiWords = aiWords.sortedByDescending { 
-                                // source가 "ai"나 "user"인 경우 최신 단어로 간주
-                                if (it.source == "ai" || it.source == "user") 1 else 0
-                            }.take(5)
+                            // 오늘 날짜의 AI/사용자 단어 합치기
+                            val todayWords = (todayAiWords + todayUserWords).take(5)
                             
-                            // 날짜 기반으로 asset 단어 선택 (AI 단어가 5개 미만일 경우)
-                            val remainingCount = 5 - recentAiWords.size
+                            // 오늘 날짜 단어가 5개 미만이면 asset 단어로 채우기
+                            val remainingCount = 5 - todayWords.size
                             val selectedAssetWords = if (remainingCount > 0 && assetWords.isNotEmpty()) {
+                                // 날짜 기반으로 asset 단어 선택 (일관성 유지)
                                 val dayOfYear = Calendar.getInstance().get(Calendar.DAY_OF_YEAR)
                                 val startIndex = (dayOfYear * 5) % assetWords.size
                                 val endIndex = minOf(startIndex + remainingCount, assetWords.size)
@@ -113,8 +120,8 @@ object FileManager {
                                 emptyList()
                             }
                             
-                            // AI 단어와 asset 단어 합치기
-                            val selectedWords = recentAiWords + selectedAssetWords
+                            // 최종 선택된 단어들 합치기
+                            val selectedWords = todayWords + selectedAssetWords
                             
                             selectedWords.forEach { word ->
                                 // 카테고리 정보를 포함하여 복사 (source가 null이거나 비어있으면 기본값 "asset" 사용)
