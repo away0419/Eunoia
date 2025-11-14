@@ -56,13 +56,58 @@ fun HistoryTab() {
     }
     
     LaunchedEffect(Unit) {
-        try {
-            words = FileManager.getHistoryWords(context)
-        } catch (e: Exception) {
-            e.printStackTrace()
-            words = emptyList()
-        } finally {
-            isLoading = false
+        scope.launch {
+            try {
+                // 히스토리 단어 가져오기
+                val historyWords = FileManager.getHistoryWords(context)
+                
+                // 기본 asset 단어들도 가져오기
+                val allCategories = CategoryManager.getAllCategories(context)
+                val assetWordsList = mutableListOf<WordData>()
+                
+                allCategories.forEach { categoryDef ->
+                    try {
+                        val category = FileManager.loadCategory(context, categoryDef.key)
+                        category?.words?.forEach { word ->
+                            val source = word.source ?: ""
+                            // asset 단어만 추가 (AI나 사용자 추가 단어는 히스토리에 있으므로 제외)
+                            if (source == "asset" || source.isEmpty()) {
+                                assetWordsList.add(
+                                    word.copy(
+                                        category = categoryDef.displayName,
+                                        source = "asset"
+                                    )
+                                )
+                            }
+                        }
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                }
+                
+                // 히스토리 단어와 asset 단어 합치기
+                // 중복 제거: 같은 word+meaning이 있으면 히스토리 것을 우선 (히스토리가 더 최신 정보)
+                val combinedWords = mutableListOf<WordData>()
+                val historyWordKeys = historyWords.map { "${it.word}|${it.meaning}" }.toSet()
+                
+                // 히스토리 단어 추가
+                combinedWords.addAll(historyWords)
+                
+                // asset 단어 추가 (히스토리에 없는 것만)
+                assetWordsList.forEach { assetWord ->
+                    val key = "${assetWord.word}|${assetWord.meaning}"
+                    if (!historyWordKeys.contains(key)) {
+                        combinedWords.add(assetWord)
+                    }
+                }
+                
+                words = combinedWords
+            } catch (e: Exception) {
+                e.printStackTrace()
+                words = emptyList()
+            } finally {
+                isLoading = false
+            }
         }
     }
     
