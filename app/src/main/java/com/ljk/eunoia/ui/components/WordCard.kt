@@ -64,17 +64,17 @@ fun WordCard(
         colors = CardDefaults.cardColors(
             containerColor = CardBackground
         ),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(20.dp),
         elevation = CardDefaults.cardElevation(
-            defaultElevation = if (isPressed) 1.dp else 4.dp,
-            pressedElevation = 1.dp
+            defaultElevation = if (isPressed) 2.dp else 6.dp,
+            pressedElevation = 2.dp
         )
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(24.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             // 카테고리, 출처, 날짜
             Row(
@@ -89,12 +89,12 @@ fun WordCard(
                 ) {
                     // 카테고리 배지
                     Surface(
-                        color = PrimaryBlue.copy(alpha = 0.12f),
-                        shape = RoundedCornerShape(20.dp)
+                        color = PrimaryBlueLight,
+                        shape = RoundedCornerShape(12.dp)
                     ) {
                         Text(
                             text = word.category,
-                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                             style = MaterialTheme.typography.labelMedium,
                             color = PrimaryBlue,
                             fontWeight = FontWeight.SemiBold,
@@ -105,19 +105,19 @@ fun WordCard(
                     // 출처 배지 (모든 단어에 표시)
                     val source = word.source ?: "asset" // null이면 기본값 사용
                     val (sourceText, sourceColor) = when (source) {
-                        "ai" -> "🤖 AI" to androidx.compose.ui.graphics.Color(0xFF9C27B0) // 보라색
-                        "user" -> "✏️ 직접 추가" to androidx.compose.ui.graphics.Color(0xFF4CAF50) // 초록색
-                        "asset" -> "📚 기본 단어" to androidx.compose.ui.graphics.Color(0xFF2196F3) // 파란색
-                        else -> "📚 기본 단어" to androidx.compose.ui.graphics.Color(0xFF2196F3) // 기본값도 파란색
+                        "ai" -> "🤖 AI" to SourceAI
+                        "user" -> "✏️ 직접 추가" to SourceUser
+                        "asset" -> "📚 기본 단어" to SourceAsset
+                        else -> "📚 기본 단어" to SourceAsset
                     }
                     
                     Surface(
-                        color = sourceColor.copy(alpha = 0.12f),
-                        shape = RoundedCornerShape(20.dp)
+                        color = sourceColor.copy(alpha = 0.1f),
+                        shape = RoundedCornerShape(12.dp)
                     ) {
                         Text(
                             text = sourceText,
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
                             style = MaterialTheme.typography.labelMedium,
                             color = sourceColor,
                             fontWeight = FontWeight.SemiBold,
@@ -166,17 +166,17 @@ fun WordCard(
             // 단어 (더 강조)
             Text(
                 text = word.word,
-                style = MaterialTheme.typography.headlineMedium,
+                style = MaterialTheme.typography.headlineLarge,
                 color = TextPrimary,
                 fontWeight = FontWeight.Bold,
-                fontSize = 24.sp,
-                lineHeight = 32.sp
+                fontSize = 22.sp,
+                lineHeight = 28.sp
             )
             
             // 구분선
             HorizontalDivider(
                 modifier = Modifier.fillMaxWidth(),
-                color = Divider.copy(alpha = 0.5f),
+                color = Divider.copy(alpha = 0.6f),
                 thickness = 1.dp
             )
             
@@ -184,9 +184,9 @@ fun WordCard(
             Text(
                 text = word.meaning,
                 style = MaterialTheme.typography.bodyLarge,
-                color = TextSecondary,
-                fontSize = 15.sp,
-                lineHeight = 22.sp
+                color = TextPrimary,
+                fontSize = 16.sp,
+                lineHeight = 24.sp
             )
         }
     }

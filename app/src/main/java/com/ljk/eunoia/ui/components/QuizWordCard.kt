@@ -47,14 +47,14 @@ fun QuizWordCard(
         colors = CardDefaults.cardColors(
             containerColor = CardBackground
         ),
-        shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        shape = RoundedCornerShape(20.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(24.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp)
+                .padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -63,12 +63,12 @@ fun QuizWordCard(
             ) {
                 // 카테고리 배지
                 Surface(
-                    color = PrimaryBlue.copy(alpha = 0.12f),
-                    shape = RoundedCornerShape(20.dp)
+                    color = PrimaryBlueLight,
+                    shape = RoundedCornerShape(12.dp)
                 ) {
                     Text(
                         text = word.category,
-                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                         style = MaterialTheme.typography.labelMedium,
                         color = PrimaryBlue,
                         fontWeight = FontWeight.SemiBold,
@@ -84,8 +84,8 @@ fun QuizWordCard(
                         Surface(
                             onClick = { onIncorrect(word) },
                             shape = CircleShape,
-                            color = Color(0xFFF44336).copy(alpha = 0.08f),
-                            modifier = Modifier.size(32.dp)
+                            color = AccentRed.copy(alpha = 0.1f),
+                            modifier = Modifier.size(36.dp)
                         ) {
                             Box(
                                 modifier = Modifier.fillMaxSize(),
@@ -93,8 +93,9 @@ fun QuizWordCard(
                             ) {
                                 Text(
                                     text = "X",
-                                    color = Color(0xFFF44336),
-                                    fontWeight = FontWeight.Bold
+                                    color = AccentRed,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 16.sp
                                 )
                             }
                         }
@@ -104,8 +105,8 @@ fun QuizWordCard(
                         Surface(
                             onClick = { onCorrect(word) },
                             shape = CircleShape,
-                            color = Color(0xFF4CAF50).copy(alpha = 0.08f),
-                            modifier = Modifier.size(32.dp)
+                            color = AccentGreen.copy(alpha = 0.1f),
+                            modifier = Modifier.size(36.dp)
                         ) {
                             Box(
                                 modifier = Modifier.fillMaxSize(),
@@ -113,8 +114,9 @@ fun QuizWordCard(
                             ) {
                                 Text(
                                     text = "O",
-                                    color = Color(0xFF4CAF50),
-                                    fontWeight = FontWeight.Bold
+                                    color = AccentGreen,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 16.sp
                                 )
                             }
                         }
