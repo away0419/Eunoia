@@ -10,6 +10,7 @@ import kotlinx.coroutines.withContext
 import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.*
+import kotlin.random.Random
 
 /**
  * 파일에서 단어 데이터를 관리하는 유틸리티 클래스
@@ -160,6 +161,134 @@ object FileManager {
         return try {
             gson.fromJson<List<WordData>>(historyJson, type) ?: emptyList()
         } catch (e: Exception) {
+            emptyList()
+        }
+    }
+
+    /**
+     * 퀴즈용 단어들을 가져옴
+     * 날짜별 확률에 따라 선택
+     * 오늘: 30%, 하루 전: 30%, 이틀 전: 20%, 사흘 전: 10%, 나머지: 10%
+     * 출현 횟수를 비슷하게 유지하는 알고리즘 적용
+     * @param context 컨텍스트
+     * @return 퀴즈용 단어 목록 (최대 30개)
+     */
+    suspend fun getQuizWords(context: Context): List<WordData> = withContext(Dispatchers.IO) {
+        try {
+            val today = dateFormat.format(Date())
+            
+            // 날짜별 단어 그룹화
+            val wordsByDate = mutableMapOf<String, MutableList<WordData>>()
+            
+            // 히스토리 단어 가져오기
+            val historyWords = getHistoryWords(context)
+            
+            // 오늘 날짜 포함하여 날짜별로 그룹화
+            historyWords.forEach { word ->
+                val wordDate = word.date ?: return@forEach
+                wordsByDate.getOrPut(wordDate) { mutableListOf() }.add(word)
+            }
+            
+            if (wordsByDate.isEmpty()) {
+                return@withContext emptyList()
+            }
+            
+            // 날짜를 날짜 순으로 정렬 (최신순)
+            val sortedDates = wordsByDate.keys.sortedDescending()
+            
+            // 날짜별 가중치 계산
+            val dateWeights = mutableMapOf<String, Double>()
+            sortedDates.forEachIndexed { index, date ->
+                val weight = when (index) {
+                    0 -> 0.30 // 오늘
+                    1 -> 0.30 // 하루 전
+                    2 -> 0.20 // 이틀 전
+                    3 -> 0.10 // 사흘 전
+                    else -> 0.10 // 나머지
+                }
+                dateWeights[date] = weight
+            }
+            
+            // 전체 가중치 합계 계산
+            val totalWeight = dateWeights.values.sum()
+            
+            // 각 단어의 선택 횟수 추적 (SharedPreferences 사용)
+            val prefs = context.getSharedPreferences("quiz_word_counts", Context.MODE_PRIVATE)
+            val wordCountsJson = prefs.getString("counts", "{}") ?: "{}"
+            val wordCountsType = object : TypeToken<Map<String, Int>>() {}.type
+            val wordCounts = try {
+                gson.fromJson<Map<String, Int>>(wordCountsJson, wordCountsType) ?: emptyMap()
+            } catch (e: Exception) {
+                emptyMap()
+            }.toMutableMap()
+            
+            // 단어별 고유 키 생성 (word + meaning + category)
+            fun getWordKey(word: WordData): String {
+                return "${word.word}|${word.meaning}|${word.category}"
+            }
+            
+            // 선택된 단어 목록
+            val selectedWords = mutableListOf<WordData>()
+            val maxWords = 30
+            
+            // 가중치 기반 선택 알고리즘 (출현 횟수 고려)
+            repeat(maxWords) {
+                // 날짜별로 가중치에 따라 선택
+                val random = Random.nextDouble() * totalWeight
+                var cumulativeWeight = 0.0
+                var selectedDate: String? = null
+                
+                for ((date, weight) in dateWeights) {
+                    cumulativeWeight += weight
+                    if (random <= cumulativeWeight) {
+                        selectedDate = date
+                        break
+                    }
+                }
+                
+                // 선택된 날짜가 없으면 첫 번째 날짜 사용
+                selectedDate = selectedDate ?: sortedDates.firstOrNull()
+                if (selectedDate == null) {
+                    return@repeat // break 대신 return@repeat 사용
+                }
+                
+                val dateWords = wordsByDate[selectedDate]
+                if (dateWords == null || dateWords.isEmpty()) {
+                    return@repeat // continue 대신 return@repeat 사용
+                }
+                
+                // 출현 횟수를 고려하여 선택 (적게 나온 단어 우선)
+                val wordWithCounts = dateWords.map { word ->
+                    val key = getWordKey(word)
+                    val count = wordCounts[key] ?: 0
+                    Pair(word, count)
+                }
+                
+                // 최소 출현 횟수를 가진 단어들 중에서 선택
+                val minCount = wordWithCounts.minOfOrNull { it.second } ?: 0
+                val candidates = wordWithCounts.filter { it.second == minCount }
+                
+                // 후보가 있으면 랜덤 선택, 없으면 전체에서 랜덤 선택
+                val selected = if (candidates.isNotEmpty()) {
+                    candidates.random().first
+                } else {
+                    dateWords.random()
+                }
+                
+                selectedWords.add(selected)
+                
+                // 선택 횟수 업데이트
+                val key = getWordKey(selected)
+                wordCounts[key] = (wordCounts[key] ?: 0) + 1
+            }
+            
+            // 선택 횟수 저장
+            val updatedCountsJson = gson.toJson(wordCounts)
+            prefs.edit().putString("counts", updatedCountsJson).apply()
+            
+            selectedWords
+        } catch (e: Exception) {
+            e.printStackTrace()
             emptyList()
         }
     }

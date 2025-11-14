@@ -64,6 +64,6 @@ class MainActivity : ComponentActivity() {
         } else if (lastAppOpenDate != today) {
             // 오늘 처음 앱을 켰지만 이미 단어를 가져왔으면 날짜만 업데이트
             prefs.edit().putString("last_app_open_date", today).apply()
-        }
     }
+}
 }

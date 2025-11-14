@@ -29,7 +29,7 @@ fun QuizTab() {
     
     LaunchedEffect(Unit) {
         try {
-            words = FileManager.getTodayWords(context)
+            words = FileManager.getQuizWords(context)
         } catch (e: Exception) {
             e.printStackTrace()
             words = emptyList()
