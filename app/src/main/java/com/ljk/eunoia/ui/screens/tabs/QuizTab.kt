@@ -27,7 +27,7 @@ import com.ljk.eunoia.utils.FileManager
 import kotlinx.coroutines.launch
 
 /**
- * 퀴즈 탭 - 단어나 뜻을 블러 처리하고 탭하여 확인 (토스 스타일)
+ * 퀴즈 탭 - 단어 또는 뜻 중 하나만 표시하고 ???를 탭하여 정답 확인 (토스 스타일)
  */
 @Composable
 fun QuizTab() {
@@ -88,7 +88,7 @@ fun QuizTab() {
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "단어나 뜻을 탭하여 정답을 확인하세요",
+                        text = "???를 탭하여 정답을 확인하세요",
                         style = MaterialTheme.typography.bodyMedium,
                         color = TextSecondary,
                         fontSize = 14.sp

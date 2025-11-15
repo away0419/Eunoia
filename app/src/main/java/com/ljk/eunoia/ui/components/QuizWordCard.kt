@@ -1,7 +1,5 @@
 package com.ljk.eunoia.ui.components
 
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -10,8 +8,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -19,7 +15,7 @@ import com.ljk.eunoia.data.WordData
 import com.ljk.eunoia.ui.theme.*
 
 /**
- * 퀴즈용 단어 카드 - 블러 처리 기능 (토스 스타일)
+ * 퀴즈용 단어 카드 - 단어 또는 뜻 중 하나만 표시 (토스 스타일)
  */
 @Composable
 fun QuizWordCard(
@@ -27,20 +23,11 @@ fun QuizWordCard(
     onCorrect: ((WordData) -> Unit)? = null,
     onIncorrect: ((WordData) -> Unit)? = null
 ) {
-    var isWordRevealed by remember { mutableStateOf(false) }
-    var isMeaningRevealed by remember { mutableStateOf(false) }
+    // 랜덤하게 단어 또는 뜻 중 하나를 선택 (각 카드마다 고정)
+    val showWordFirst = remember(word.id) { kotlin.random.Random.nextBoolean() }
     
-    val wordAlpha by animateFloatAsState(
-        targetValue = if (isWordRevealed) 1f else 0.2f,
-        animationSpec = tween(durationMillis = 300),
-        label = "word_alpha"
-    )
-    
-    val meaningAlpha by animateFloatAsState(
-        targetValue = if (isMeaningRevealed) 1f else 0.2f,
-        animationSpec = tween(durationMillis = 300),
-        label = "meaning_alpha"
-    )
+    var isWordRevealed by remember { mutableStateOf(showWordFirst) }
+    var isMeaningRevealed by remember { mutableStateOf(!showWordFirst) }
     
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -124,11 +111,15 @@ fun QuizWordCard(
                 }
             }
             
-            // 단어 (블러 처리 가능)
+            // 단어 영역
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { isWordRevealed = !isWordRevealed },
+                    .clickable { 
+                        if (!isWordRevealed) {
+                            isWordRevealed = true
+                        }
+                    },
                 color = BackgroundLight,
                 shape = RoundedCornerShape(12.dp)
             ) {
@@ -140,22 +131,32 @@ fun QuizWordCard(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Text(
-                        text = if (isWordRevealed) "단어" else "???",
+                        text = "단어",
                         style = MaterialTheme.typography.labelMedium,
                         color = TextSecondary,
                         fontSize = 12.sp
                     )
-                    Text(
-                        text = word.word,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .alpha(wordAlpha),
-                        style = MaterialTheme.typography.headlineMedium,
-                        color = TextPrimary,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 24.sp,
-                        lineHeight = 32.sp
-                    )
+                    if (isWordRevealed) {
+                        Text(
+                            text = word.word,
+                            modifier = Modifier.fillMaxWidth(),
+                            style = MaterialTheme.typography.headlineMedium,
+                            color = TextPrimary,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 24.sp,
+                            lineHeight = 32.sp
+                        )
+                    } else {
+                        Text(
+                            text = "???",
+                            modifier = Modifier.fillMaxWidth(),
+                            style = MaterialTheme.typography.headlineMedium,
+                            color = TextSecondary,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 24.sp,
+                            lineHeight = 32.sp
+                        )
+                    }
                 }
             }
             
@@ -166,11 +167,15 @@ fun QuizWordCard(
                 thickness = 1.dp
             )
             
-            // 뜻 (블러 처리 가능)
+            // 뜻 영역
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { isMeaningRevealed = !isMeaningRevealed },
+                    .clickable { 
+                        if (!isMeaningRevealed) {
+                            isMeaningRevealed = true
+                        }
+                    },
                 color = BackgroundLight,
                 shape = RoundedCornerShape(12.dp)
             ) {
@@ -182,21 +187,31 @@ fun QuizWordCard(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Text(
-                        text = if (isMeaningRevealed) "뜻" else "???",
+                        text = "뜻",
                         style = MaterialTheme.typography.labelMedium,
                         color = TextSecondary,
                         fontSize = 12.sp
                     )
-                    Text(
-                        text = word.meaning,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .alpha(meaningAlpha),
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = TextSecondary,
-                        fontSize = 15.sp,
-                        lineHeight = 22.sp
-                    )
+                    if (isMeaningRevealed) {
+                        Text(
+                            text = word.meaning,
+                            modifier = Modifier.fillMaxWidth(),
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = TextPrimary,
+                            fontSize = 16.sp,
+                            lineHeight = 24.sp
+                        )
+                    } else {
+                        Text(
+                            text = "???",
+                            modifier = Modifier.fillMaxWidth(),
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = TextSecondary,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp,
+                            lineHeight = 24.sp
+                        )
+                    }
                 }
             }
         }
