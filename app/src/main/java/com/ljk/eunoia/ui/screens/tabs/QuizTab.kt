@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.asPaddingValues
 import com.ljk.eunoia.data.WordData
 import com.ljk.eunoia.ui.components.QuizWordCard
@@ -68,7 +69,12 @@ fun QuizTab() {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 24.dp),
+                    .padding(
+                        start = 20.dp,
+                        top = 24.dp + WindowInsets.statusBars.asPaddingValues().calculateTopPadding(),
+                        end = 20.dp,
+                        bottom = 24.dp
+                    ),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {

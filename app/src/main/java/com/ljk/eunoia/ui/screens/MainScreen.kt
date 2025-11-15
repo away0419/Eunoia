@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.asPaddingValues
 import com.ljk.eunoia.ui.screens.tabs.HistoryTab
 import com.ljk.eunoia.ui.screens.tabs.QuizTab
@@ -94,6 +95,7 @@ fun CustomTabBar(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .padding(top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding())
                     .height(56.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {

@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.asPaddingValues
 import com.ljk.eunoia.ai.GeminiApiService
 import com.ljk.eunoia.data.WordData
@@ -104,7 +105,12 @@ fun SettingsScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 16.dp),
+                    .padding(
+                        start = 20.dp,
+                        top = 16.dp + WindowInsets.statusBars.asPaddingValues().calculateTopPadding(),
+                        end = 20.dp,
+                        bottom = 16.dp
+                    ),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 TextButton(onClick = onBack) {

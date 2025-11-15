@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.asPaddingValues
 import com.ljk.eunoia.data.WordData
 import com.ljk.eunoia.ui.components.WordCard
@@ -128,7 +129,12 @@ fun HistoryTab() {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 24.dp),
+                    .padding(
+                        start = 20.dp,
+                        top = 24.dp + WindowInsets.statusBars.asPaddingValues().calculateTopPadding(),
+                        end = 20.dp,
+                        bottom = 24.dp
+                    ),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // 뒤로가기 버튼 (주제 선택 시에만 표시)
