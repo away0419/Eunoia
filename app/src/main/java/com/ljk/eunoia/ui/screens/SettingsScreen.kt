@@ -228,19 +228,106 @@ fun SettingsScreen(
                     if (apiKey.isNotBlank()) {
                         var isLoadingWords by remember { mutableStateOf(false) }
                         var wordFetchResult by remember { mutableStateOf<String?>(null) }
+                        var currentCategory by remember { mutableStateOf<String?>(null) }
                         
                         Button(
                             onClick = {
                                 isLoadingWords = true
                                 wordFetchResult = null
+                                currentCategory = null
                                 scope.launch {
                                     try {
-                                        // 즉시 단어 가져오기 실행
-                                        WorkManagerHelper.fetchWordsNow(context)
-                                        wordFetchResult = "단어 가져오기 작업이 시작되었습니다. 잠시 후 새로고침해주세요."
+                                        // 모든 카테고리 가져오기
+                                        val categories = CategoryManager.getAllCategories(context)
+                                        var totalWords = 0
+                                        var successCount = 0
+                                        var errorCount = 0
+                                        
+                                        // 각 카테고리별로 단어 생성
+                                        categories.forEachIndexed { index, categoryDefinition ->
+                                            try {
+                                                currentCategory = categoryDefinition.displayName
+                                                
+                                                // 기존 단어 목록 가져오기
+                                                val existingCategory = FileManager.loadCategory(context, categoryDefinition.key)
+                                                val existingWords = existingCategory?.words?.map { it.word } ?: emptyList()
+                                                
+                                                // AI로 새로운 단어 생성
+                                                val newWords = GeminiApiService.generateNewWords(
+                                                    context = context,
+                                                    existingWords = existingWords,
+                                                    category = categoryDefinition.displayName
+                                                )
+                                                
+                                                if (newWords.isNotEmpty()) {
+                                                    // 오늘 날짜 가져오기
+                                                    val today = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
+                                                        .format(java.util.Date())
+                                                    
+                                                    // 날짜와 카테고리 정보 추가
+                                                    val wordsWithDate = newWords.map { 
+                                                        it.copy(
+                                                            category = categoryDefinition.displayName,
+                                                            source = "ai",
+                                                            date = today
+                                                        )
+                                                    }
+                                                    
+                                                    // 기존 단어와 합치기
+                                                    val existingWordsList = existingCategory?.words ?: emptyList()
+                                                    val updatedWords = existingWordsList + wordsWithDate
+                                                    
+                                                    // 카테고리 파일에 저장
+                                                    val gson = com.google.gson.Gson()
+                                                    val updatedCategory = com.ljk.eunoia.data.Category(
+                                                        category = categoryDefinition.displayName,
+                                                        words = updatedWords
+                                                    )
+                                                    val json = gson.toJson(updatedCategory)
+                                                    
+                                                    val file = java.io.File(context.filesDir, "${categoryDefinition.key}.json")
+                                                    java.io.FileWriter(file).use { writer ->
+                                                        writer.write(json)
+                                                    }
+                                                    
+                                                    // 히스토리에 자동으로 저장
+                                                    wordsWithDate.forEach { word ->
+                                                        FileManager.saveToHistory(context, word)
+                                                    }
+                                                    
+                                                    totalWords += wordsWithDate.size
+                                                    successCount++
+                                                } else {
+                                                    errorCount++
+                                                }
+                                                
+                                                // API 호출 간격 (무료 티어 제한 고려)
+                                                kotlinx.coroutines.delay(2000)
+                                            } catch (e: Exception) {
+                                                android.util.Log.e("SettingsScreen", "카테고리 처리 중 오류: ${categoryDefinition.key}", e)
+                                                errorCount++
+                                            }
+                                        }
+                                        
+                                        // 오늘 날짜 저장
+                                        val today = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
+                                            .format(java.util.Date())
+                                        prefs.edit().putString("last_word_fetch_date", today).apply()
+                                        
+                                        // 결과 메시지
+                                        currentCategory = null
+                                        if (totalWords > 0) {
+                                            wordFetchResult = "✓ ${totalWords}개의 단어를 ${successCount}개 카테고리에 추가했습니다."
+                                        } else if (errorCount > 0) {
+                                            wordFetchResult = "⚠ 단어 생성에 실패했습니다. API 키와 인터넷 연결을 확인해주세요."
+                                        } else {
+                                            wordFetchResult = "⚠ 생성된 단어가 없습니다."
+                                        }
                                         isLoadingWords = false
                                     } catch (e: Exception) {
-                                        wordFetchResult = "오류: ${e.message}"
+                                        android.util.Log.e("SettingsScreen", "단어 가져오기 오류", e)
+                                        currentCategory = null
+                                        wordFetchResult = "✗ 오류: ${e.message}"
                                         isLoadingWords = false
                                     }
                                 }
@@ -253,10 +340,29 @@ fun SettingsScreen(
                             shape = RoundedCornerShape(12.dp)
                         ) {
                             if (isLoadingWords) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(20.dp),
-                                    color = androidx.compose.material3.MaterialTheme.colorScheme.onPrimary
-                                )
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.Center,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(20.dp),
+                                        color = androidx.compose.material3.MaterialTheme.colorScheme.onPrimary,
+                                        strokeWidth = 2.dp
+                                    )
+                                    Spacer(modifier = Modifier.width(12.dp))
+                                    Text(
+                                        text = if (currentCategory != null) {
+                                            "$currentCategory 처리 중..."
+                                        } else {
+                                            "단어 생성 중..."
+                                        },
+                                        modifier = Modifier.padding(vertical = 8.dp),
+                                        fontSize = 16.sp,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = androidx.compose.material3.MaterialTheme.colorScheme.onPrimary
+                                    )
+                                }
                             } else {
                                 Text(
                                     text = "🤖 지금 단어 가져오기",
@@ -270,10 +376,10 @@ fun SettingsScreen(
                         if (wordFetchResult != null) {
                             Text(
                                 text = wordFetchResult ?: "",
-                                color = if (wordFetchResult?.contains("오류") == true) {
-                                    androidx.compose.ui.graphics.Color(0xFFF44336)
-                                } else {
-                                    PrimaryBlue
+                                color = when {
+                                    wordFetchResult?.contains("✓") == true -> androidx.compose.ui.graphics.Color(0xFF4CAF50)
+                                    wordFetchResult?.contains("✗") == true -> androidx.compose.ui.graphics.Color(0xFFF44336)
+                                    else -> PrimaryBlue
                                 },
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.Medium
