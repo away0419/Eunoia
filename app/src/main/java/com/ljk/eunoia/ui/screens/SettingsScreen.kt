@@ -9,7 +9,9 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.foundation.clickable
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.mutableStateListOf
@@ -546,7 +548,8 @@ fun SettingsScreen(
                     if (availableCategories.isNotEmpty()) {
                         ExposedDropdownMenuBox(
                             expanded = expanded,
-                            onExpandedChange = { expanded = it }
+                            onExpandedChange = { expanded = it },
+                            modifier = Modifier.fillMaxWidth()
                         ) {
                             OutlinedTextField(
                                 value = resolvedCategoryName,
@@ -558,24 +561,101 @@ fun SettingsScreen(
                                 trailingIcon = { 
                                     ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) 
                                 },
-                                modifier = Modifier.fillMaxWidth(),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .menuAnchor(),
                                 colors = OutlinedTextFieldDefaults.colors(
                                     focusedBorderColor = PrimaryBlue,
-                                    unfocusedBorderColor = Divider
-                                )
+                                    unfocusedBorderColor = Divider,
+                                    focusedLabelColor = PrimaryBlue,
+                                    unfocusedLabelColor = TextSecondary
+                                ),
+                                shape = RoundedCornerShape(12.dp)
                             )
                             ExposedDropdownMenu(
                                 expanded = expanded,
                                 onDismissRequest = { expanded = false }
                             ) {
-                                availableCategories.forEach { definition ->
-                                    DropdownMenuItem(
-                                        text = { Text(definition.displayName) },
-                                        onClick = {
-                                            selectedWordCategoryKey = definition.key
-                                            expanded = false
+                                Surface(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .heightIn(max = 300.dp),
+                                    color = CardBackground,
+                                    shape = RoundedCornerShape(12.dp),
+                                    shadowElevation = 6.dp,
+                                    tonalElevation = 1.dp
+                                ) {
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .verticalScroll(rememberScrollState())
+                                    ) {
+                                    availableCategories.forEachIndexed { index, definition ->
+                                        val isSelected = selectedWordCategoryKey == definition.key
+                                        
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clickable {
+                                                    selectedWordCategoryKey = definition.key
+                                                    expanded = false
+                                                }
+                                                .background(
+                                                    color = if (isSelected) {
+                                                        PrimaryBlueLight
+                                                    } else {
+                                                        androidx.compose.ui.graphics.Color.Transparent
+                                                    }
+                                                )
+                                                .padding(
+                                                    horizontal = 16.dp,
+                                                    vertical = 12.dp
+                                                )
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Text(
+                                                    text = definition.displayName,
+                                                    fontSize = 15.sp,
+                                                    color = if (isSelected) {
+                                                        PrimaryBlue
+                                                    } else {
+                                                        TextPrimary
+                                                    },
+                                                    fontWeight = if (isSelected) {
+                                                        FontWeight.SemiBold
+                                                    } else {
+                                                        FontWeight.Normal
+                                                    },
+                                                    modifier = Modifier.weight(1f)
+                                                )
+                                                
+                                                if (isSelected) {
+                                                    Spacer(modifier = Modifier.width(8.dp))
+                                                    Icon(
+                                                        imageVector = Icons.Default.Check,
+                                                        contentDescription = "선택됨",
+                                                        tint = PrimaryBlue,
+                                                        modifier = Modifier.size(18.dp)
+                                                    )
+                                                }
+                                            }
                                         }
-                                    )
+                                        
+                                        // 마지막 항목이 아니면 구분선 추가
+                                        if (index < availableCategories.size - 1) {
+                                            HorizontalDivider(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(horizontal = 16.dp),
+                                                color = com.ljk.eunoia.ui.theme.Divider.copy(alpha = 0.2f),
+                                                thickness = 0.5.dp
+                                            )
+                                        }
+                                    }
+                                    }
                                 }
                             }
                         }
