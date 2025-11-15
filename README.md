@@ -105,7 +105,7 @@ app/src/main/java/com/ljk/eunoia/
 
 <div style="overflow-x: auto; white-space: nowrap;">
   <img src="./apk/Screenshot_20251115_144355.png" alt="스크린샷 1" style="height: 400px; display: inline-block; margin-right: 10px;" />
-  <img src="./apk/screenshot_20251115_144435.png" alt="스크린샷 2" style="height: 400px; display: inline-block; margin-right: 10px;" />
+  <img src="./apk/Screenshot_20251115_144435.png" alt="스크린샷 2" style="height: 400px; display: inline-block; margin-right: 10px;" />
   <img src="./apk/Screenshot_20251115_144448.png" alt="스크린샷 3" style="height: 400px; display: inline-block; margin-right: 10px;" />
   <img src="./apk/Screenshot_20251115_144507.png" alt="스크린샷 4" style="height: 400px; display: inline-block; margin-right: 10px;" />
   <img src="./apk/Screenshot_20251115_144533.png" alt="스크린샷 5" style="height: 400px; display: inline-block;" />
