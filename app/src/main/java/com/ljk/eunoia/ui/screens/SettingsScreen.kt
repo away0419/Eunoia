@@ -8,6 +8,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
@@ -96,43 +97,47 @@ fun SettingsScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(BackgroundLight)
-            .verticalScroll(rememberScrollState())
     ) {
-        // 헤더
+        // 헤더 (고정) - 메인 화면과 동일한 스타일
         Surface(
             modifier = Modifier.fillMaxWidth(),
             color = CardBackground,
-            shadowElevation = 1.dp
+            shadowElevation = 2.dp
         ) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(
-                        start = 20.dp,
-                        top = 16.dp + WindowInsets.statusBars.asPaddingValues().calculateTopPadding(),
-                        end = 20.dp,
-                        bottom = 16.dp
-                    ),
+                    .padding(top = WindowInsets.statusBars.asPaddingValues().calculateTopPadding())
+                    .height(56.dp)
+                    .padding(horizontal = 4.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                TextButton(onClick = onBack) {
-                    Text("← 뒤로", color = PrimaryBlue)
-                }
-                Spacer(modifier = Modifier.width(16.dp))
-                Text(
-                    text = "설정",
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = TextPrimary,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 24.sp
+                // 뒤로 가기 버튼 (토스 스타일)
+                TossIconButton(
+                    onClick = onBack,
+                    icon = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "뒤로"
                 )
+                
+                // 제목 영역
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "설정",
+                        style = MaterialTheme.typography.headlineMedium,
+                        color = TextPrimary,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 28.sp
+                    )
+                }
             }
         }
         
-        // 설정 내용
+        // 설정 내용 (스크롤 가능)
         Column(
             modifier = Modifier
+                .weight(1f)
                 .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
                 .padding(
                     start = 20.dp,
                     end = 20.dp,
